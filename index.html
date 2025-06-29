@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ASCII art snowflakes</title>
+    <link rel="stylesheet" href="utility.css" />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+
+      body {
+        background-color: #121212;
+        /* background-color: blueviolet; */
+        color: white;
+        padding: 0;
+        margin: 0;
+      }
+
+      h1 {
+        padding: 20px;
+        font-family: "Poppins";
+        text-align: center;
+      }
+
+      .input-form {
+        margin-top: 60px;
+        margin-bottom: 60px;
+      }
+
+      label > p {
+        padding: 0;
+        margin: 8px 0;
+        font-family: "Poppins";
+      }
+
+      input {
+        width: 200px;
+        padding: 6px 12px;
+        border: 0;
+        border-radius: 8px;
+        font-family: "Poppins";
+        font-weight: 500;
+        box-sizing: border-box;
+      }
+
+      #generate-btn {
+        background-color: rgb(221, 18, 18);
+        color: white;
+        width: 200px;
+        padding: 8px;
+        margin: 20px 0;
+        border: 0;
+        border-radius: 60px;
+        font-family: "Poppins";
+        font-weight: 500;
+        font-size: 1.1rem;
+        cursor: pointer;
+      }
+
+      .black-bg {
+        background-color: #1f1f1f;
+      }
+
+      .snowflake-section {
+        height: auto;
+        margin: 20px;
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 20px;
+      }
+
+      .snowflake-container {
+        max-width: 100%;
+        height: 100%;
+        margin-top: 20px;
+        font-family: "Poppins", sans-serif;
+      }
+
+      .snowflake-container > p {
+        padding: 20px;
+      }
+      pre {
+        height: auto;
+        width: auto;
+        /* margin-top: 1.5rem;
+        margin-bottom: 1.5rem; */
+        /* padding: 2rem 6rem; */
+        white-space: pre;
+        display: inline-block;
+        line-height: 1;
+        transform: scale(0.6);
+        letter-spacing: 5.5px;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 12px;
+        max-width: 100vw;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="black-bg flex align-center justify-center">
+      <h1>ASCII art snowflakes | FrozenChain ❄</h1>
+    </header>
+    <section class="flex align-center justify-center"></section>
+    <section class="input-form">
+      <div class="flex-column justify-center align-center">
+        <div>
+          <label>
+            <p>Seed:</p>
+            <input
+              type="text"
+              id="seed"
+              placeholder="e.g. 12345"
+              value="FrozenChain"
+            />
+          </label>
+
+          <label>
+            <p>Branch Length:</p>
+            <input
+              type="number"
+              id="branchlength"
+              min="20"
+              max="100"
+              value="40"
+            />
+          </label>
+
+          <label>
+            <p>Branch Count:</p>
+            <input type="number" id="branchcount" min="3" max="12" value="6" />
+          </label>
+
+          <div>
+            <button id="generate-btn" onclick="createASCIISnowflack()">
+              Build Snowflake
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section
+      class="snowflake-section flex-0 align-center justify-center"
+    >
+      <div class="snowflake-container flex-column align-center justify-center">
+        <p class="text-align-center">Click on Build Snowflake to create a Snowflake</p>
+        <pre id="snowflake"></pre>
+      </div>
+    </section>
+  </body>
+  <script>
+    function extendedHashBits(str) {
+      let h1 = 2034876661;
+      let h2 = 0x7949c0f5;
+
+      for (let i = 0; i < str.length; i++) {
+        const ch = str.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 16294819);
+        h2 = Math.imul(h2 ^ ch, 1099248758211);
+      }
+
+      return [h1 >>> 0, h2 >>> 0];
+    }
+
+    function encodeInBase62(num, length = 12) {
+      const character_set =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      const chars = [];
+      const base = character_set.length;
+      let character = character_set.charAt(num % 10);
+      while (num > 0) {
+        chars.push(character_set[num % base]);
+        num = Math.floor(num / base);
+      }
+      let encodedCode = chars.join("");
+      let encodedReverse = chars.reverse().join("");
+      return (encodedCode + encodedReverse)
+        .padStart(length, character)
+        .slice(0, length);
+    }
+
+    function customHashString(str, totalLength = 24) {
+      const [h1, h2] = extendedHashBits(str);
+      const part1 = encodeInBase62(h1, totalLength / 2);
+      const part2 = encodeInBase62(h2, totalLength / 2);
+      return part1 + part2;
+    }
+
+    function getNewHash(base_hash, branch_length, max_depth) {
+      const hash_length = max_depth * branch_length + branch_length;
+      let parts = [
+        base_hash.slice(0, 6),
+        base_hash.slice(6, 12),
+        base_hash.slice(12, 18),
+        base_hash.slice(18, 24),
+      ];
+      return createNewHash(parts, hash_length);
+    }
+
+    function createNewHash(parts, target) {
+      const base62 =
+        "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+      const new_hash = [];
+
+      for (let i = 0; i < target; i++) {
+        const a = parts[0][i % parts[0].length].charCodeAt(0);
+        const b = parts[2][(i + 3) % parts[2].length].charCodeAt(0);
+        const c = parts[1][(i + 7) % parts[1].length].charCodeAt(0);
+        const d = parts[3][(i + 11) % parts[3].length].charCodeAt(0);
+        const combined = (a + b + c + d + i) % 62;
+        new_hash.push(base62[combined]);
+      }
+
+      return new_hash.join("");
+    }
+
+    function getRandom(new_hash, count) {
+      return (new_hash.charCodeAt(count) % 10) / 10;
+    }
+
+    symbols = ["·", "•", "∘", "○", "◉", "●", "⊙", "◯"];
+    // symbols = ["·", "•", "∘", "○", "·", "•", "∘", "○"];
+    // symbols = ["·", "•", "·", "•", "·", "•", "·", "•"];
+    function createSnowflake(branch_length, numBranches, baseHash) {
+      //   const grid_size = max_depth * 2 + 1;
+      const grid_size = branch_length * 2 + 1;
+      max_depth = pickMaxDepth(branch_length);
+      console.log(max_depth);
+      const mid = Math.floor(grid_size / 2);
+      const branch_grid = craeteBranchGrid(
+        grid_size,
+        max_depth,
+        branch_length,
+        baseHash
+      );
+      const main_grid = buildMainGrid(grid_size, branch_grid, numBranches);
+      // return main_grid.map((row) => row.join("")).join("\n");
+      return main_grid;
+    }
+
+    function buildMainGrid(grid_size, branch_grid, numBranches) {
+      // const center = Math.floor(main_grid_size / 2);
+      // main_grid = 9 X 9
+      // branch_grid = 4 X 4
+      const main_grid = Array.from({ length: grid_size }, () =>
+        Array(grid_size).fill(" ")
+      );
+      const centerX = Math.floor(main_grid[0].length / 2); // 4
+      const centerY = centerX; // 4
+      const max_radius = centerX; // 4
+      const branch_mid = Math.floor(branch_grid[0].length / 2); // 2
+      const branch_distanceX = centerX - branch_mid; // 4 - 2 = 2
+      // const branch_center = Math.floor(branch_grid_size / 2);
+
+      for (let y = 0; y < branch_grid.length; y++) {
+        const radius = max_radius - y; // 4 - y
+        for (let x = 0; x < branch_grid[y].length; x++) {
+          const symbol = branch_grid[y][x];
+          if (symbol === " ") continue;
+
+          const axisX = x - branch_mid; // [0, 0] -> [-2, 4]
+          const axisY = radius; // [0, 0] -> [-2, 4]
+          // const axisY = max_radius - y; // 4 - y
+          // x = axisX + branch_mid
+          // y = max_radius - axisY
+          // angle = Pie - theta
+          // axisX = radius * cos(theta) -> radius * sin(Pie - theta)
+          // axisY = radius * sin(theta) -> radius * cos(Pie - theta)
+          // i = 0 -> [-2, 4] -> [-2, 4]
+          // i = 1 -> [-2, 4] -> [4, 2]
+          // i = 2 -> [-2, 4] -> [2, -4]
+          // i = 3 -> [-2, 4] -> [-4, -2]
+
+          for (let i = 0; i < numBranches; i++) {
+            const angle = (360 / numBranches) * i;
+
+            const [branchX, branchY] = rotatePoint(axisX, axisY, angle);
+            const gridX = centerX + branchX;
+            const gridY = centerY + branchY;
+
+            if (withinBounds(gridX, gridY, main_grid.length)) {
+              main_grid[gridX][gridY] = symbol;
+            }
+          }
+        }
+      }
+      return main_grid;
+    }
+
+    function rotatePoint(x, y, angleDeg) {
+      const radian = (angleDeg * Math.PI) / 180;
+      const cos = Math.cos(radian);
+      const sin = Math.sin(radian);
+      const rx = Math.round(x * cos - y * sin);
+      const ry = Math.round(x * sin + y * cos);
+      return [rx, ry];
+    }
+
+    function withinBounds(x, y, gridSize) {
+      return x >= 0 && x < gridSize && y >= 0 && y < gridSize;
+    }
+
+    function craeteBranchGrid(grid_size, max_depth, branch_length, baseHash) {
+      const max_width = max_depth > 0 ? max_depth * 2 - 1 : max_depth;
+      const branch_grid = Array.from({ length: grid_size }, () =>
+        Array(max_width).fill(" ")
+      );
+      //   const branch_mid = Math.floor(max_width / 2);
+      const branch_mid = max_depth;
+      console.log("baseHash: " + baseHash);
+      const newHash = getNewHash(baseHash, branch_length, max_depth);
+      console.log("newHash -> " + newHash);
+      let count1 = 5;
+      let count2 = 0;
+
+      for (let i = 0; i < branch_length; i++) {
+        // let sub_branch_length = Math.floor(bashHash * (branch_mid + 1));
+        // sub_branch_length =
+        //   sub_branch_length > branch_mid ? branch_grid : sub_branch_length;
+        sub_branch_length = calculateSubBranchLength(
+          branch_mid,
+          i,
+          newHash,
+          count1
+        );
+        console.log(sub_branch_length);
+        for (let j = 0; j <= sub_branch_length; j++) {
+          const char =
+            symbols[Math.floor(getRandom(newHash, count2) * symbols.length)];
+          if (j == 0) {
+            if (branch_grid[i][branch_mid] == " ") {
+              branch_grid[i][branch_mid] = char; // middle
+            }
+          } else {
+            branch_grid[i][branch_mid - j] = char; // left
+            branch_grid[i][branch_mid + j] = char; // right
+          }
+          count2++;
+        }
+        count1++;
+      }
+      console.log(branch_grid);
+      // console.log(branch_grid.map((row) => row.join("")).join("\n"));
+      return branch_grid;
+    }
+
+    function calculateSubBranchLength(branch_mid, i, newHash, count) {
+      if (i < 2) {
+        return i;
+      }
+      let sub_branch_length = Math.floor(
+        getRandom(newHash, count) * (branch_mid + 1)
+      );
+      sub_branch_length =
+        sub_branch_length > branch_mid ? branch_grid : sub_branch_length;
+      return sub_branch_length;
+    }
+
+    function pickMaxDepth(branch_length) {
+      if (branch_length < 40) return 4;
+      if (branch_length < 60) return 5;
+      return 6;
+    }
+
+    function displayGrid(grid) {
+      const lines = grid.map((row) => row.join(""));
+      document.querySelector(".snowflake-container").firstElementChild.textContent = "";
+      document.getElementById("snowflake").textContent = lines.join("\n");
+    }
+
+    function createASCIISnowflack(params) {
+      const seed = document.getElementById("seed").value.trim();
+      const length = parseInt(
+        document.getElementById("branchlength").value,
+        10
+      );
+      const count = parseInt(document.getElementById("branchcount").value, 10);
+
+      if (!seed || isNaN(length) || isNaN(count)) {
+        alert("Please fill in all fields correctly.");
+        return;
+      }
+
+      const baseHash = customHashString(seed);
+      const grid = createSnowflake(length, count, baseHash);
+      // console.log(grid);
+      displayGrid(grid);
+    }
+  </script>
+</html>
